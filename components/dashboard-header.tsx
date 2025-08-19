@@ -51,7 +51,9 @@ export default function DashboardHeader({ user, profile }: DashboardHeaderProps)
                 </span>
               </div>
               <div className="hidden sm:block">
-                <p className="text-sm font-medium text-foreground">{profile?.full_name || "Student"}</p>
+                <p className="text-sm font-medium text-foreground">
+                  {profile?.full_name || user.email?.split("@")[0] || "Student"}
+                </p>
                 <p className="text-xs text-muted-foreground">{profile?.role || "student"}</p>
               </div>
             </div>

@@ -1,40 +1,29 @@
-import { createServerClient as createSupabaseServerClient } from "@supabase/ssr"
+import { createServerComponentClient } from "@supabase/auth-helpers-nextjs"
 import { cookies } from "next/headers"
+import { cache } from "react"
 
-const supabaseUrl = "https://khyqmssuchivbrufloxs.supabase.co"
-const supabaseAnonKey =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtoeXFtc3N1Y2hpdmJydWZsb3hzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUxODk5OTUsImV4cCI6MjA3MDc2NTk5NX0.QIm_dT3XWghpvk6wUOHdG3g0NbOM8n4kI5X2jkEHRLw"
+// Check if Supabase environment variables are available
+export const isSupabaseConfigured =
+  typeof process.env.NEXT_PUBLIC_SUPABASE_URL === "string" &&
+  process.env.NEXT_PUBLIC_SUPABASE_URL.length > 0 &&
+  typeof process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY === "string" &&
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY.length > 0
 
-// Check if Supabase is configured
-export const isSupabaseConfigured = true
-
-export function createServerClient() {
+// Create a cached version of the Supabase client for Server Components
+export const createClient = cache(() => {
   const cookieStore = cookies()
 
-  return createSupabaseServerClient(supabaseUrl, supabaseAnonKey, {
-    cookies: {
-      get(name: string) {
-        return cookieStore.get(name)?.value
+  if (!isSupabaseConfigured) {
+    console.warn("Supabase environment variables are not set. Using dummy client.")
+    return {
+      auth: {
+        getUser: () => Promise.resolve({ data: { user: null }, error: null }),
+        getSession: () => Promise.resolve({ data: { session: null }, error: null }),
       },
-      set(name: string, value: string, options: any) {
-        try {
-          cookieStore.set({ name, value, ...options })
-        } catch (error) {
-          // Handle cookie setting errors in server actions
-          console.error("Error setting cookie:", error)
-        }
-      },
-      remove(name: string, options: any) {
-        try {
-          cookieStore.set({ name, value: "", ...options })
-        } catch (error) {
-          // Handle cookie removal errors in server actions
-          console.error("Error removing cookie:", error)
-        }
-      },
-    },
-  })
-}
+    }
+  }
 
-// Legacy export for backward compatibility
-export const createClient = createServerClient
+  return createServerComponentClient({ cookies: () => cookieStore })
+})
+
+export const createServerClient = createClient
